@@ -25,7 +25,8 @@ parser.add_argument('--status', action='store_true')
 parser.add_argument('--parameter', nargs='+', type=str)
 parser.add_argument('--setparameter', nargs='+', type=pair)
 parser.add_argument('--units', action='store_true')
-parser.add_argument('--notifications', action='store_true')
+parser.add_argument('--alarms', action='store_true')
+parser.add_argument('--info', action='store_true')
 parser.add_argument('--unit', type=int, default=0)
 parser.add_argument('--unit_status', action='store_true')
 parser.add_argument('--verbose', action='store_true')
@@ -45,23 +46,22 @@ if args.verbose:
 
 STORE = 'nibeuplink.json'
 
+
 def token_read():
     try:
         with open(STORE, 'r') as myfile:
             return json.load(myfile)
     except FileNotFoundError:
         return None
-    except:
-        _LOGGER.warning('Failed to load previous token: %s' % sys.exc_info()[0])
-        return None
 
 def token_write(token):
     with open(STORE, 'w') as myfile:
-        json.dump(token, myfile, indent=2)
+        json.dump(token,
+                  myfile,
+                  indent=2)
 
 
 async def run():
-
 
     scope = ['READSYSTEM']
     if args.setparameter:
@@ -104,8 +104,11 @@ async def run():
             if args.units:
                 todo.extend([uplink.get_units(args.system)])
 
-            if args.notifications:
+            if args.alarms:
                 todo.extend([uplink.get_notifications(args.system)])
+
+            if args.info:
+                todo.extend([uplink.get_notifications(args.system, notifiction_type=1)])
 
             if args.setparameter:
                 todo.extend([uplink.set_parameter(args.system, p[0], p[1]) for p in args.setparameter])

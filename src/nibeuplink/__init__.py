@@ -1,51 +1,115 @@
+import attr
 import logging
 from itertools import islice
 import asyncio
 import aiohttp
 import uuid
-from collections import namedtuple
 from datetime import datetime, timedelta
+from typing import List
 
 from urllib.parse import urlencode, urlsplit, parse_qs
 
+from .typing import StatusItemIcon
 
 _LOGGER = logging.getLogger(__name__)
 
 MAX_REQUEST_PARAMETERS = 15
 
 
-ClimateSystem = namedtuple(
-    'ClimateSystem',
-    [
-        'name',
-        'return_temp',                 # BT3
-        'supply_temp',                 # BT2
-        'calc_supply_temp_heat',       # CSTH
-        'offset_cool',                 # OC
-        'room_temp',                   # BT50
-        'room_setpoint_heat',          # RSH
-        'room_setpoint_cool',          # RSC
-        'use_room_sensor',             # URS
-        'active_accessory',            # AA
-        'external_adjustment_active',  # EAA
-        'calc_supply_temp_cool',       # CSTC
-        'offset_heat',                 # OH
-        'heat_curve',                  # HC
-        'min_supply',                  # MIS
-        'max_supply',                  # MAS
-        'extra_heat_pump'              # EHP
-    ]
-)
+@attr.s
+class ClimateSystem(object):
+    name = attr.ib()
+    return_temp = attr.ib()                 # BT3
+    supply_temp = attr.ib()                 # BT2
+    calc_supply_temp_heat = attr.ib()       # CSTH
+    offset_cool = attr.ib()                 # OC
+    room_temp = attr.ib()                   # BT50
+    room_setpoint_heat = attr.ib()          # RSH
+    room_setpoint_cool = attr.ib()          # RSC
+    use_room_sensor = attr.ib()             # URS
+    active_accessory = attr.ib()            # AA
+    external_adjustment_active = attr.ib()  # EAA
+    calc_supply_temp_cool = attr.ib()       # CSTC
+    offset_heat = attr.ib()                 # OH
+    heat_curve = attr.ib()                  # HC
+    min_supply = attr.ib()                  # MIS
+    max_supply = attr.ib()                  # MAS
+    extra_heat_pump = attr.ib()              # EHP
 
-PARAM_CLIMATE_SYSTEMS = {
-    #                        BT3    BT2    CSTH   OC     BT50   RSH    RSC    URS    AA     EAA    CSTC   OH     HC     MIS    MAS    HP
-    '1': ClimateSystem('S1', 40012, 40008, 43009, 48739, 40033, 47398, 48785, 47394, None , 43161, 44270, 47011, 47007, 47015, 47016, None),
-    '2': ClimateSystem('S2', 40129, 40007, 43008, 48738, 40032, 47397, 48784, 47393, 47302, 43160, 44269, 47010, 47006, 47014, 47017, 44746),
-    '3': ClimateSystem('S3', 40128, 40006, 43007, 48737, 40031, 47396, 48783, 47392, 47303, 43159, 44268, 47009, 47005, 47013, 47018, 44745),
-    '4': ClimateSystem('S4', 40127, 40005, 43006, 48736, 40030, 47395, 48782, 47391, 47304, 43158, 44267, 47008, 47004, 47012, 47019, 44744),
+
+@attr.s
+class HotWaterSystem(object):
+    name = attr.ib()
+    hot_water_charging = attr.ib()
+    hot_water_top = attr.ib()
+    hot_water_comfort_mode = attr.ib()
+    hot_water_production = attr.ib()
+    periodic_hot_water = attr.ib()
+    stop_temperature_water_normal = attr.ib()
+    start_temperature_water_normal = attr.ib()
+    stop_temperature_water_luxary = attr.ib()
+    start_temperature_water_luxary = attr.ib()
+    stop_temperature_water_economy = attr.ib()
+    start_temperature_water_economy = attr.ib()
+    total_hot_water_compressor_time = attr.ib()
+    hot_water_boost = attr.ib()
+
+
+@attr.s
+class VentilationSystem(object):
+    name = attr.ib()
+    fan_speed = attr.ib()
+    exhaust_air = attr.ib()  # BT20
+    extract_air = attr.ib()  # BT21
+    exhaust_speed_normal = attr.ib()
+    exhaust_speed_1 = attr.ib()
+    exhaust_speed_2 = attr.ib()
+    exhaust_speed_3 = attr.ib()
+    exhaust_speed_4 = attr.ib()
+    ventilation_boost = attr.ib()
+
+
+PARAM_HOTWATER_SYSTEMS = {
+    '1': HotWaterSystem('Hot Water',
+                        40014,
+                        40013,
+                        47041,
+                        47387,
+                        47050,
+                        47048,
+                        47044,
+                        47047,
+                        47043,
+                        47049,
+                        47045,
+                        43424,
+                        'hot_water_boost')
 }
 
-PARAM_PUMP_SPEED = 43437
+PARAM_CLIMATE_SYSTEMS = {
+    #                        BT3    BT2    CSTH   OC     BT50   RSH    RSC    URS    AA     EAA    CSTC   OH     HC     MIS    MAS    HP      # noqa: 501
+    '1': ClimateSystem('S1', 40012, 40008, 43009, 48739, 40033, 47398, 48785, 47394, None , 43161, 44270, 47011, 47007, 47015, 47016, None),  # noqa: 501
+    '2': ClimateSystem('S2', 40129, 40007, 43008, 48738, 40032, 47397, 48784, 47393, 47302, 43160, 44269, 47010, 47006, 47014, 47017, 44746), # noqa: 501
+    '3': ClimateSystem('S3', 40128, 40006, 43007, 48737, 40031, 47396, 48783, 47392, 47303, 43159, 44268, 47009, 47005, 47013, 47018, 44745), # noqa: 501
+    '4': ClimateSystem('S4', 40127, 40005, 43006, 48736, 40030, 47395, 48782, 47391, 47304, 43158, 44267, 47008, 47004, 47012, 47019, 44744), # noqa: 501
+}
+
+PARAM_VENTILATION_SYSTEMS = {
+    '1': VentilationSystem('Ventilation',
+                           10001,
+                           40025,
+                           40026,
+                           47265,
+                           47264,
+                           47263,
+                           47262,
+                           47261,
+                           'ventilation_boost')
+}
+
+PARAM_PUMP_SPEED_HEATING_MEDIUM = 43437
+PARAM_COMPRESSOR_FREQUENCY = 43136
+PARAM_STATUS_COOLING = 43024
 
 
 def chunks(data, SIZE):
@@ -97,11 +161,11 @@ class Uplink():
                  client_id,
                  client_secret,
                  redirect_uri,
-                 access_data,
-                 access_data_write,
-                 scope     = ['READSYSTEM'],
-                 loop      = None,
-                 base      = 'https://api.nibeuplink.com',
+                 access_data = None,
+                 access_data_write = None,
+                 scope = ['READSYSTEM'],
+                 loop = None,
+                 base = 'https://api.nibeuplink.com',
                  throttle  = THROTTLE):
 
         self.redirect_uri      = redirect_uri
@@ -122,11 +186,6 @@ class Uplink():
                 self.access_data = access_data
             else:
                 _LOGGER.info("Ignoring access data due to changed scope {}".format(scope))
-
-        if self.access_data:
-            self.auth = BearerAuth(self.access_data['access_token'])
-        else:
-            self.auth = None
 
         headers = {
             'Accept'      : 'application/json',
@@ -153,10 +212,24 @@ class Uplink():
         if 'access_token' not in data:
             raise ValueError('Error in reply {}'.format(data))
 
+        if 'expires_in' in data:
+            _LOGGER.debug("Token will expire in %s seconds",
+                          data['expires_in'])
+            expires = datetime.now() + timedelta(seconds=data['expires_in'])
+        else:
+            expires = None
+
+        data['access_token_expires'] = expires.isoformat()
+
         self.access_data = data
         if self.access_data_write:
             self.access_data_write(data)
-        self.auth = BearerAuth(self.access_data['access_token'])
+
+    async def _get_auth(self):
+        if self.access_data:
+            return BearerAuth(self.access_data['access_token'])
+        else:
+            return None
 
     async def get_access_token(self, code):
         payload = {
@@ -171,6 +244,12 @@ class Uplink():
             self._handle_access_token(await response.json())
 
     async def refresh_access_token(self):
+        if not self.access_data or 'refresh_token' not in self.access_data:
+            _LOGGER.warning("No refresh token available for refresh")
+            return
+
+        _LOGGER.debug('Refreshing access token with refresh token %s',
+                      self.access_data['refresh_token'])
         payload = {
             'grant_type'    : 'refresh_token',
             'refresh_token' : self.access_data['refresh_token'],
@@ -224,15 +303,18 @@ class Uplink():
             )
 
     async def _request(self, fun, *args, **kw):
-
-        response = await fun(*args, auth = self.auth, **kw)
+        response = await fun(*args,
+                             auth=await self._get_auth(),
+                             **kw)
         try:
             if response.status == 401:
                 _LOGGER.debug(response)
                 _LOGGER.info("Attempting to refresh token due to error in request")
                 await self.refresh_access_token()
                 response.close()
-                response = await fun(*args, auth=self.auth, **kw)
+                response = await fun(*args,
+                                     auth=await self._get_auth(),
+                                     **kw)
 
             await raise_for_status(response)
 
@@ -382,7 +464,7 @@ class Uplink():
         _LOGGER.debug("Requesting status on system {}".format(system_id))
         return await self.get('systems/{}/status/system'.format(system_id))
 
-    async def get_status(self, system_id: int):
+    async def get_status(self, system_id: int) -> List[StatusItemIcon]:
         data = await self.get_status_raw(system_id)
         for status in data:
             if status['parameters']:
