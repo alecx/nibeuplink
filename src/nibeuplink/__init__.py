@@ -101,7 +101,8 @@ class Uplink():
                  access_data_write,
                  scope     = ['READSYSTEM'],
                  loop      = None,
-                 base      = 'https://api.nibeuplink.com'):
+                 base      = 'https://api.nibeuplink.com',
+                 throttle  = THROTTLE):
 
         self.redirect_uri      = redirect_uri
         self.client_id         = client_id
@@ -113,6 +114,7 @@ class Uplink():
         self.loop              = loop
         self.base              = base
         self.access_data       = None
+        self.throttle          = throttle
 
         # check that the access scope is enough, otherwise ignore
         if access_data:
@@ -204,10 +206,13 @@ class Uplink():
 
         delay = (self.timestamp - timestamp).total_seconds()
         if delay > 0:
+            _LOGGER.debug("throttle, waiting %s seconds", delay)
             await asyncio.sleep(delay)
-        self.timestamp = timestamp + self.THROTTLE
+
+        self.timestamp = datetime.now() + self.throttle
 
     async def get(self, url, params = {}):
+        _LOGGER.debug("Requesting %s", url)
         async with self.lock:
             await self._get_throttle()
 
@@ -252,6 +257,9 @@ class Uplink():
         await asyncio.sleep(0)
 
         while True:
+            # check if we are already finished, by somebody elses request
+            if request.done is True:
+                break
             async with self.lock:
 
                 # check if we are already finished, by somebody elses request
@@ -277,6 +285,7 @@ class Uplink():
                     params  = [('parameterIds', str(x.parameter_id)) for x in requests],
                     headers = {},
                 )
+                _LOGGER.debug("Param request finished: {}".format([str(x.parameter_id) for x in requests]))
 
                 lookup = {p['name']: p for p in data}
 
